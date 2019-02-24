@@ -51,8 +51,22 @@ ngx_module_t ngx_http_hello_world_module = {
 
 static ngx_int_t ngx_http_hello_world_handler(ngx_http_request_t *r)
 {
+    ngx_int_t     rc;
     ngx_buf_t    *buf;
     ngx_chain_t   out;
+
+    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "***Call Handler***");
+    if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD))) {
+        return NGX_HTTP_NOT_ALLOWED;
+    }
+
+    rc = ngx_http_discard_request_body(r);
+    if (rc != NGX_OK && rc != NGX_AGAIN) {
+        return rc;
+    }
+    if (r->headers_in.if_modified_since) {
+        return NGX_HTTP_NOT_MODIFIED;
+    }
 
     r->headers_out.content_type.len = sizeof("text/plain") - 1;
     r->headers_out.content_type.data = (u_char *) "text/plain";
