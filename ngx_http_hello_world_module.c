@@ -55,7 +55,6 @@ static ngx_int_t ngx_http_hello_world_handler(ngx_http_request_t *r)
     ngx_buf_t    *buf;
     ngx_chain_t   out;
 
-    ngx_log_error(NGX_LOG_DEBUG, r->connection->log, 0, "***Call Handler***");
     if (!(r->method & (NGX_HTTP_GET|NGX_HTTP_HEAD))) {
         return NGX_HTTP_NOT_ALLOWED;
     }
@@ -72,6 +71,10 @@ static ngx_int_t ngx_http_hello_world_handler(ngx_http_request_t *r)
     r->headers_out.content_type.data = (u_char *) "text/plain";
 
     buf = ngx_pcalloc(r->pool, sizeof(ngx_buf_t));
+    if (buf == NULL) {
+      ngx_log_error(NGX_LOG_ERR, r->connection->log, 0, "Failed to allocate memory.");
+      return NGX_HTTP_INTERNAL_SERVER_ERROR;
+    }
 
     out.buf = buf;
     out.next = NULL;
@@ -83,7 +86,10 @@ static ngx_int_t ngx_http_hello_world_handler(ngx_http_request_t *r)
 
     r->headers_out.status = NGX_HTTP_OK;
     r->headers_out.content_length_n = sizeof(ngx_hello_world);
-    ngx_http_send_header(r);
+    rc = ngx_http_send_header(r);
+    if (rc == NGX_ERROR || rc > NGX_OK || r->header_only) {
+        return rc;
+    }
 
     return ngx_http_output_filter(r, &out);
 }
